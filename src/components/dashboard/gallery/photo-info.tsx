@@ -70,6 +70,10 @@ export function PhotoInfo() {
   const [isSaving, setIsSaving] = useState(false)
   const [isGeoLoading, setIsGeoLoading] = useState(false)
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false)
+  const [defaultLocation, setDefaultLocation] = useState<{
+    latitude: number
+    longitude: number
+  }>({ latitude: 39.9042, longitude: 116.4074 }) // 默认北京坐标
 
   useEffect(() => {
     if (photoInfo?.dateTimeOriginal) {
@@ -77,6 +81,24 @@ export function PhotoInfo() {
       setTime(photoInfo.dateTimeOriginal.toTimeString().slice(0, 8))
     }
   }, [photoInfo?.dateTimeOriginal])
+
+  // 获取用户当前位置作为默认位置
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setDefaultLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          })
+        },
+        (err) => {
+          console.log('无法获取默认位置，使用北京坐标', err)
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 },
+      )
+    }
+  }, [])
 
   const updateDateTime = (newDate?: Date, newTime?: string) => {
     if (!photoInfo) return
@@ -633,7 +655,7 @@ export function PhotoInfo() {
                     size='sm'
                     className='cursor-pointer'
                     onClick={handleReverseGeocode}
-                    disabled={isReverseGeocoding}
+                    disabled={isReverseGeocoding || (!photoInfo?.latitude && !photoInfo?.longitude)}
                   >
                     {isReverseGeocoding ? (
                       <div className='flex items-center gap-1'>
@@ -656,21 +678,36 @@ export function PhotoInfo() {
                   })
                 }}
               />
-              <LocationMap
-                latitude={photoInfo?.latitude ?? 0}
-                longitude={photoInfo?.longitude ?? 0}
-                width='100%'
-                height='200px'
-                zoom={photoInfo?.latitude && photoInfo?.longitude ? 14 : 2}
-                editable
-                onChange={(coords) => {
-                  if (!photoInfo) return
-                  setPhotoInfo({ ...photoInfo, ...coords })
-                }}
-              />
-              <p className='text-muted-foreground text-xs'>
-                {t('photo.click-map-to-set-location')}
-              </p>
+              {(() => {
+                const hasValidCoords = 
+                  photoInfo?.latitude != null && 
+                  photoInfo?.longitude != null &&
+                  !isNaN(photoInfo.latitude) && 
+                  !isNaN(photoInfo.longitude)
+                
+                const displayLat = hasValidCoords ? photoInfo.latitude : defaultLocation.latitude
+                const displayLng = hasValidCoords ? photoInfo.longitude : defaultLocation.longitude
+                
+                return (
+                  <>
+                    <LocationMap
+                      latitude={displayLat}
+                      longitude={displayLng}
+                      width='100%'
+                      height='200px'
+                      zoom={hasValidCoords ? 14 : 10}
+                      editable
+                      onChange={(coords) => {
+                        if (!photoInfo) return
+                        setPhotoInfo({ ...photoInfo, ...coords })
+                      }}
+                    />
+                    <p className='text-muted-foreground text-xs'>
+                      {t('photo.click-map-to-set-location')}
+                    </p>
+                  </>
+                )
+              })()}
             </div>
           </div>
 
