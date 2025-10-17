@@ -684,10 +684,10 @@ export function PhotoInfo() {
                   photoInfo?.longitude != null &&
                   !isNaN(photoInfo.latitude) && 
                   !isNaN(photoInfo.longitude)
-                
-                const displayLat = hasValidCoords ? photoInfo.latitude : defaultLocation.latitude
-                const displayLng = hasValidCoords ? photoInfo.longitude : defaultLocation.longitude
-                
+
+                const displayLat = hasValidCoords ? photoInfo.latitude! : defaultLocation.latitude
+                const displayLng = hasValidCoords ? photoInfo.longitude! : defaultLocation.longitude
+
                 return (
                   <>
                     <LocationMap
